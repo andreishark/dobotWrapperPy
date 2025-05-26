@@ -1,6 +1,7 @@
 from .dobotapi import DobotApi
-from .dobotConnection import DobotConnection 
+from .dobotConnection import DobotConnection
 import warnings
+import time
 import struct
 from .enums.alarm import Alarm
 from .enums.ptpMode import PTPMode
@@ -59,21 +60,36 @@ class DobotAsync:
         signal.signal(signal.SIGINT, self._on_sigint)
         self._endEffectorType = None
 
-    async def _on_sigint(self, signum: int, frame: Optional[Any]) -> None:
+    def _on_sigint(self, signum: int, frame: Optional[Any]) -> None:
         print("SIGINT received. Force Stopping robot...")
         self.force_stop()
+        self._loop.stop()
+        self.dobotApiInterface.set_queued_cmd_clear()
+        self.dobotApiInterface.set_queued_cmd_start_exec()
+        time.sleep(2)
         match self._endEffectorType:
             case EndEffectorType.CUP:
-                await self.suck(False)
+                self.suck_sync(False)
             case EndEffectorType.GRIPPER:
-                await self.grip(False)
+                self.gripper_sync(False)
             case EndEffectorType.LASER:
-                await self.laser(False)
+                self.laser_sync(False)
+
         # Exit the program immediately — no further code runs
-        sys.exit(130)  # Standard exit code for Ctrl+C
+        sys.exit(130)
+        raise Exception("Force Stop")
 
     def force_stop(self) -> None:
         self.dobotApiInterface.set_queued_cmd_force_stop_exec()
+
+    def suck_sync(self, enable: bool) -> None:
+        self.dobotApiInterface.set_end_effector_suction_cup(enable, False, True)
+
+    def gripper_sync(self, enable: bool) -> None:
+        self.dobotApiInterface.set_end_effector_gripper(enable, True, True)
+
+    def laser_sync(self, enable: bool) -> None:
+        self.dobotApiInterface.set_end_effector_laser(enable, enable, True, True)
 
     def __del__(self) -> None:
         if hasattr(self, "dobotApiInterface") and self.dobotApiInterface is not None:
@@ -269,6 +285,7 @@ class DobotAsync:
         )
 
     async def suck(self, enable: bool) -> None:
+        print("Suck False")
         await self._loop.run_in_executor(
             None,
             self.dobotApiInterface.set_end_effector_suction_cup,
@@ -280,9 +297,24 @@ class DobotAsync:
 
     async def grip(self, enable: bool) -> None:
         await self._loop.run_in_executor(
-            None, self.dobotApiInterface.set_end_effector_gripper, enable, True, True
+            None,
+            self.dobotApiInterface.set_end_effector_gripper,
+            True,
+            enable,
+            True,
+            True,
         )
         self._endEffectorType = EndEffectorType.GRIPPER
+
+    async def grip_off(self) -> None:
+        await self._loop.run_in_executor(
+            None,
+            self.dobotApiInterface.set_end_effector_gripper,
+            False,
+            False,
+            True,
+            True,
+        )
 
     async def laser(self, enable: bool) -> None:
         await self._loop.run_in_executor(
@@ -637,6 +669,94 @@ class DobotAsync:
             True,
             True,
         )
+
+    async def move_joystick_positive_x_with_step(self) -> None:
+        await self._loop.run_in_executor(
+            None,
+            self.dobotApiInterface.set_jog_cmd,
+            tagJOGCmd(JogMode.COORDINATE, JogCmd.AP_DOWN),
+            True,
+            True,
+        )
+        await asyncio.sleep(0.2)
+        await self.stop_joystick_movement()
+
+    async def move_joystick_negative_x_with_step(self) -> None:
+        await self._loop.run_in_executor(
+            None,
+            self.dobotApiInterface.set_jog_cmd,
+            tagJOGCmd(JogMode.COORDINATE, JogCmd.AN_DOWN),
+            True,
+            True,
+        )
+        await asyncio.sleep(0.2)
+        await self.stop_joystick_movement()
+
+    async def move_joystick_positive_y_with_step(self) -> None:
+        await self._loop.run_in_executor(
+            None,
+            self.dobotApiInterface.set_jog_cmd,
+            tagJOGCmd(JogMode.COORDINATE, JogCmd.BP_DOWN),
+            True,
+            True,
+        )
+        await asyncio.sleep(0.2)
+        await self.stop_joystick_movement()
+
+    async def move_joystick_negative_y_with_step(self) -> None:
+        await self._loop.run_in_executor(
+            None,
+            self.dobotApiInterface.set_jog_cmd,
+            tagJOGCmd(JogMode.COORDINATE, JogCmd.BN_DOWN),
+            True,
+            True,
+        )
+        await asyncio.sleep(0.2)
+        await self.stop_joystick_movement()
+
+    async def move_joystick_positive_z_with_step(self) -> None:
+        await self._loop.run_in_executor(
+            None,
+            self.dobotApiInterface.set_jog_cmd,
+            tagJOGCmd(JogMode.COORDINATE, JogCmd.CP_DOWN),
+            True,
+            True,
+        )
+        await asyncio.sleep(0.2)
+        await self.stop_joystick_movement()
+
+    async def move_joystick_negative_z_with_step(self) -> None:
+        await self._loop.run_in_executor(
+            None,
+            self.dobotApiInterface.set_jog_cmd,
+            tagJOGCmd(JogMode.COORDINATE, JogCmd.CN_DOWN),
+            True,
+            True,
+        )
+        await asyncio.sleep(0.2)
+        await self.stop_joystick_movement()
+
+    async def move_joystick_positive_r_with_step(self) -> None:
+        await self._loop.run_in_executor(
+            None,
+            self.dobotApiInterface.set_jog_cmd,
+            tagJOGCmd(JogMode.COORDINATE, JogCmd.DP_DOWN),
+            True,
+            True,
+        )
+        await asyncio.sleep(0.2)
+        await self.stop_joystick_movement()
+
+    async def move_joystick_negative_r_with_step(self) -> None:
+        await self._loop.run_in_executor(
+            None,
+            self.dobotApiInterface.set_jog_cmd,
+            tagJOGCmd(JogMode.COORDINATE, JogCmd.DN_DOWN),
+            True,
+            True,
+        )
+        await asyncio.sleep(0.2)
+        await self.stop_joystick_movement()
 
     async def move_in_circle(
         self,

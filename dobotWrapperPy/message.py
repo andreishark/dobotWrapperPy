@@ -20,12 +20,14 @@ class Message:
             self.params = bytearray([])
             self.checksum = None
         else:
+            self.checksum = b[-1:][0]
             self.header = b[0:2]
             self.len = b[2]
             self.id = CommunicationProtocolIDs(b[3])
             self.ctrl = ControlValues(b[4])
             self.params = b[5:-1]
-            self.checksum = b[-1:][0]
+            # if self.verify_checksum():
+            #     raise Exception("Checksum Invalid")
 
     def __repr__(self) -> str:
         return "Message()"

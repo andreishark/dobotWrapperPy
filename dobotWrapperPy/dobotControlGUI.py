@@ -90,6 +90,7 @@ class DobotGUIApp:
         create_styled_button(buttons_frame, "Connect Dobot", self._connect_dobot_cmd)
         create_styled_button(buttons_frame, "Clear Alarms", self._clear_alarms_cmd)
         create_styled_button(buttons_frame, "Get Pose", self._get_pose_cmd)
+        create_styled_button(buttons_frame, "Force Stop", self._force_stop)
 
         # Movement Buttons Frame (for preset jumps)
         # movement_frame = tk.Frame(main_frame, bg="#f0f0f0")
@@ -121,7 +122,6 @@ class DobotGUIApp:
             command: Callable[[], None],
             width: int,
             height: int,
-            on_leave_command: Optional[Callable[[Any], None]],
         ) -> tk.Button:
             btn = tk.Button(
                 parent,
@@ -139,7 +139,6 @@ class DobotGUIApp:
                 highlightbackground="#0056b3",
                 cursor="hand2",
             )
-            btn.bind("<ButtonRelease-1>", on_leave_command)
 
             # Basic hover effect
             def on_enter(event: Any) -> None:
@@ -167,7 +166,6 @@ class DobotGUIApp:
             self._positive_y,
             button_width,
             button_height,
-            self._stop_movement,
         ).grid(row=0, column=1, padx=5, pady=5)
 
         # Row 1: X-axis and Y-axis controls
@@ -177,7 +175,6 @@ class DobotGUIApp:
             self._negative_x,
             button_width,
             button_height,
-            self._stop_movement,
         ).grid(row=1, column=0, padx=5, pady=5)
         create_styled_button_grid(
             joystick_grid_frame,
@@ -185,7 +182,6 @@ class DobotGUIApp:
             self._positive_x,
             button_width,
             button_height,
-            self._stop_movement,
         ).grid(row=1, column=2, padx=5, pady=5)
         # Add a blank space in the center of the X-Y-Z cross
         tk.Frame(
@@ -202,7 +198,6 @@ class DobotGUIApp:
             self._negative_z,
             button_width,
             button_height,
-            self._stop_movement,
         ).grid(row=2, column=1, padx=5, pady=5)
 
         # Separate frame for Y and R controls to allow more flexible placement
@@ -217,7 +212,6 @@ class DobotGUIApp:
             self._positive_z,
             button_width,
             button_height,
-            self._stop_movement,
         ).pack(pady=5)
         create_styled_button_grid(
             y_r_frame,
@@ -225,7 +219,6 @@ class DobotGUIApp:
             self._negative_z,
             button_width,
             button_height,
-            self._stop_movement,
         ).pack(pady=5)
         create_styled_button_grid(
             y_r_frame,
@@ -233,7 +226,6 @@ class DobotGUIApp:
             self._positive_r,
             button_width,
             button_height,
-            self._stop_movement,
         ).pack(pady=5)
         create_styled_button_grid(
             y_r_frame,
@@ -241,7 +233,6 @@ class DobotGUIApp:
             self._negative_r,
             button_width,
             button_height,
-            self._stop_movement,
         ).pack(pady=5)
 
     async def _initial_connect(self) -> None:
@@ -318,28 +309,36 @@ class DobotGUIApp:
         self._schedule_dobot_task(get_pose_coro(), "Getting Pose")
 
     def _positive_x(self) -> None:
-        self._schedule_dobot_task(self.dobot.move_joystick_positive_x(), "+X")
+        self._schedule_dobot_task(self.dobot.move_joystick_positive_x_with_step(), "+X")
+
+    def _force_stop(self) -> None:
+        async def temp() -> None:
+            self.dobot.force_stop()
+            self.dobot.dobotApiInterface.set_queued_cmd_clear()
+            self.dobot.dobotApiInterface.set_queued_cmd_start_exec()
+
+        self._schedule_dobot_task(temp(), "Forcing Stop")
 
     def _negative_x(self) -> None:
-        self._schedule_dobot_task(self.dobot.move_joystick_negative_x(), "-X")
+        self._schedule_dobot_task(self.dobot.move_joystick_negative_x_with_step(), "-X")
 
     def _positive_y(self) -> None:
-        self._schedule_dobot_task(self.dobot.move_joystick_positive_y(), "+Y")
+        self._schedule_dobot_task(self.dobot.move_joystick_positive_y_with_step(), "+Y")
 
     def _negative_y(self) -> None:
-        self._schedule_dobot_task(self.dobot.move_joystick_negative_y(), "-Y")
+        self._schedule_dobot_task(self.dobot.move_joystick_negative_y_with_step(), "-Y")
 
     def _positive_z(self) -> None:
-        self._schedule_dobot_task(self.dobot.move_joystick_positive_z(), "+Z")
+        self._schedule_dobot_task(self.dobot.move_joystick_positive_z_with_step(), "+Z")
 
     def _negative_z(self) -> None:
-        self._schedule_dobot_task(self.dobot.move_joystick_negative_z(), "-Z")
+        self._schedule_dobot_task(self.dobot.move_joystick_negative_z_with_step(), "-Z")
 
     def _positive_r(self) -> None:
-        self._schedule_dobot_task(self.dobot.move_joystick_positive_r(), "+R")
+        self._schedule_dobot_task(self.dobot.move_joystick_positive_r_with_step(), "+R")
 
     def _negative_r(self) -> None:
-        self._schedule_dobot_task(self.dobot.move_joystick_negative_r(), "-R")
+        self._schedule_dobot_task(self.dobot.move_joystick_negative_r_with_step(), "-R")
 
     def _stop_movement(self, event: Any) -> None:
         self._schedule_dobot_task(self.dobot.stop_joystick_movement(), "IDEL")
