@@ -629,6 +629,15 @@ class DobotAsync:
             True,
         )
 
+    async def stop_joystick_movement(self) -> None:
+        await self._loop.run_in_executor(
+            None,
+            self.dobotApiInterface.set_jog_cmd,
+            tagJOGCmd(JogMode.COORDINATE, JogCmd.IDEL),
+            True,
+            True,
+        )
+
     async def move_in_circle(
         self,
         relative_x: float,
